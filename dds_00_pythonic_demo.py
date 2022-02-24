@@ -91,10 +91,6 @@ class NUMERICALLY_CONTROLLED_OSCILLATOR:
         return self.M
 
     # PHASE REGISTER ---------------------------------------------------------------------------------------------------
-    def delta_phase(self):
-        # 0 < ΔPhase < (2^N − 1)
-        pass
-
     def set_phase_register(self, last_phase):
         # N bit register, which is loaded the modulus 2^N sum of its old output and the frequency tuning word
         self.phase_register = last_phase

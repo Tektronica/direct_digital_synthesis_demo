@@ -8,39 +8,37 @@ def run_demo():
 
 def start():
     log = {"time": [], "phase": [], "address": [], "output": []}
-    accumulator = FOUR_BIT_ACCUMULATOR()
-    result, Cout = accumulator.four_bit_accumulator(1, '0100', Cin=0)
-    print('first test', result)
-    result, Cout = accumulator.four_bit_accumulator(1, '0100', Cin=Cout)
-    print('second test', result)
 
-    OBA = ONE_BIT_ACCUMULATOR(1)
-    print(OBA.logic_one_bit_accumulator(clk=1, y=1, Cin=0))
-    print(OBA.logic_one_bit_accumulator(clk=1, y=1, Cin=0))
+    print('D Flip Flop test')
+    dff = D_FLIP_FLOP()
+    print(1, '---->', dff.logic_d_flip_flop(clk=0, d=1), 'first access (no change)')
+    print(2, 'rising edge ---->', dff.logic_d_flip_flop(clk=1, d=1), 'should change to 1')
+    print(3, '---->', dff.logic_d_flip_flop(clk=0, d=0), 'no change')
+    print(4, 'rising edge ---->', dff.logic_d_flip_flop(clk=1, d=0), 'change to 0')
+    print(5, '---->', dff.logic_d_flip_flop(clk=0, d=1), 'no change')
+    print(6, 'rising edge ---->', dff.logic_d_flip_flop(clk=1, d=1), 'change to 1')
 
-    test = D_FLIP_FLOP_NAND(1)
-    osc = 1
-    for i in range(5):
-        print(f'dff{i} and {osc}', test.logic_d_flip_flop(clk=osc, d=0))
-        if osc == 0:
-            osc = 1
-        else:
-            osc = 0
+    print('\nfull adder test')
+    print(logic_full_adder(A=0, B=0, Cin=0), '--> sum = 0, Cout = 0')
+    print(logic_full_adder(A=0, B=0, Cin=1), '--> sum = 1, Cout = 0')
+    print(logic_full_adder(A=0, B=1, Cin=0), '--> sum = 1, Cout = 0')
+    print(logic_full_adder(A=0, B=1, Cin=1), '--> sum = 0, Cout = 1')
+    print(logic_full_adder(A=1, B=0, Cin=0), '--> sum = 1, Cout = 0')
+    print(logic_full_adder(A=1, B=0, Cin=1), '--> sum = 0, Cout = 1')
+    print(logic_full_adder(A=1, B=1, Cin=0), '--> sum = 0, Cout = 1')
+    print(logic_full_adder(A=1, B=1, Cin=1), '--> sum = 1, Cout = 1')
 
-    osc = 1
-    for i in range(3):
-        print(f'dff{i} and {osc}', test.logic_d_flip_flop(clk=osc, d=1))
-        if osc == 0:
-            osc = 1
-        else:
-            osc = 0
-
-    print('sr test')
-    sr1 = SR_NAND_LATCH(1)
-    print(sr1.logic_sr_nand_latch(0, 0))
-    print(sr1.logic_sr_nand_latch(0, 1))
-    print(sr1.logic_sr_nand_latch(1, 0))
-    print(sr1.logic_sr_nand_latch(1, 1))
+    print('\nfour bit accumulator')
+    FBA = FOUR_BIT_ACCUMULATOR()
+    print(FBA.four_bit_accumulator(clk=1, y='0010', Cin=0), '--> sum = 0010')
+    print('\tfalling-edge', FBA.four_bit_accumulator(clk=0, y='0000', Cin=0), '--> same: sum = 0010')
+    print(FBA.four_bit_accumulator(clk=1, y='0100', Cin=0), '--> sum = 0110')
+    print('\tfalling-edge', FBA.four_bit_accumulator(clk=0, y='0000', Cin=0), '--> same: sum = 0110')
+    print(FBA.four_bit_accumulator(clk=1, y='1000', Cin=0), '--> sum = 1110')
+    print('\tfalling-edge', FBA.four_bit_accumulator(clk=0, y='0000', Cin=0), '--> same: sum = 1110')
+    print(FBA.four_bit_accumulator(clk=1, y='0001', Cin=0), '--> sum = 1111')
+    print('\tfalling-edge', FBA.four_bit_accumulator(clk=0, y='0000', Cin=0), '--> same: sum = 1110')
+    print(FBA.four_bit_accumulator(clk=1, y='0001', Cin=0), '-->sum = 1110 with carry')
 
 
 # LOGIC GATES ----------------------------------------------------------------------------------------------------------
@@ -78,45 +76,11 @@ def logic_nand_xor(A, B):
 
 # LOGIC BLOCKS ---------------------------------------------------------------------------------------------------------
 
-# SR LATCH NOR LOGIC ---------------------------------------------------------------------------------------------------
-class SR_NOR_LATCH:
-    def __init__(self, logic_id=0):
-        self.logic_id = logic_id
-        self.Q = 0
-        self.nQ = 1
-
-    def get_id(self):
-        return self.logic_id
-
-    def logic_sr_nor_latch(self, R, S):
-        Q = logic_nor(R, self.nQ)
-        nQ = logic_nor(S, self.Q)
-        return Q, nQ
-
-
-class GATED_SR_NOR_LATCH:
-    def __init__(self, logic_id=0):
-        self.logic_id = logic_id
-        self.sr1 = SR_NOR_LATCH(1)
-        self.Q = 0
-        self.nQ = 1
-
-    def get_id(self):
-        return self.logic_id
-
-    def logic_gated_sr_latch(self, R, S, E):
-        RE = logic_and(R, E)
-        SE = logic_and(S, E)
-        Q, nQ = self.sr1.logic_sr_nor_latch(RE, SE)
-
-        return Q, nQ
-
-
 # SR LATCH NAND LOGIC --------------------------------------------------------------------------------------------------
 class SR_NAND_LATCH:
     def __init__(self, logic_id=0):
         self.logic_id = logic_id
-        self.Q = 0
+        self.Q = 1
         self.nQ = 1
 
     def get_id(self):
@@ -128,43 +92,8 @@ class SR_NAND_LATCH:
         return Q, nQ
 
 
-# class GATED_SR_NAND_LATCH:
-#     def __init__(self, logic_id=0):
-#         self.logic_id = logic_id
-#         self.sr1 = SR_NAND_LATCH(1)
-#         self.Q = 0
-#         self.nQ = 0
-#
-#     def get_id(self):
-#         return self.logic_id
-#
-#     def logic_gated_sr_latch(self, R, S, E):
-#         SE = logic_nand(S, E)
-#         RE = logic_nand(R, E)
-#         Q, nQ = self.sr1.logic_sr_nand_latch(SE, RE)
-#
-#         return Q, nQ
-
-
 # FLIP-FLOPS -----------------------------------------------------------------------------------------------------------
-class D_FLIP_FLOP_NOR:
-    def __init__(self, logic_id=0):
-        self.logic_id = logic_id
-        self.gsr1 = GATED_SR_NOR_LATCH(1)
-        self.gsr2 = GATED_SR_NOR_LATCH(2)
-
-    def logic_d_flip_flop(self, clk, d):
-        # rising edge d-flip-flop
-        nclk = logic_not(clk)
-        nd = logic_not(d)
-
-        Q, nQ = self.gsr1.logic_gated_sr_latch(R=d, S=nd, E=nclk)
-        Qout, nQout = self.gsr2.logic_gated_sr_latch(R=Q, S=nQ, E=clk)
-
-        return Qout, nQout
-
-
-class D_FLIP_FLOP_NAND:
+class D_FLIP_FLOP:
     """
     rising edge d-flip-flop implemented with NAND technology
     takes two rising edges to reach steady-state
@@ -181,8 +110,11 @@ class D_FLIP_FLOP_NAND:
 
     def logic_d_flip_flop(self, clk=1, d=0):
         Q0, self.nQ0 = self.sr1.logic_sr_nand_latch(S=self.nQ1, R=clk)
+
         nQ0_and_clk = logic_and(self.nQ0, clk)
-        Q, nQ = self.sr2.logic_sr_nand_latch(S=nQ0_and_clk, R=d)
+        Q1, nQ1 = self.sr2.logic_sr_nand_latch(S=nQ0_and_clk, R=d)
+
+        Q, nQ = self.sr2.logic_sr_nand_latch(S=self.nQ0, R=Q1)
 
         return Q, nQ
 
@@ -206,7 +138,7 @@ def logic_full_adder(A, B, Cin):
 class ONE_BIT_ACCUMULATOR:
     def __init__(self, logic_id=0):
         self.logic_id = logic_id
-        self.dflipflop1 = D_FLIP_FLOP_NAND(1)
+        self.dflipflop1 = D_FLIP_FLOP(1)
         self.Q = 0
 
     def logic_one_bit_accumulator(self, clk, y, Cin=0):
@@ -232,10 +164,10 @@ class FOUR_BIT_ACCUMULATOR:
         y3 = int(y[3])
 
         # register of flip-flops
-        s0, Cout0 = self.accumulator1.logic_one_bit_accumulator(clk=clk, y=y0, Cin=Cin)
+        s0, Cout0 = self.accumulator0.logic_one_bit_accumulator(clk=clk, y=y0, Cin=Cin)
         s1, Cout1 = self.accumulator1.logic_one_bit_accumulator(clk=clk, y=y1, Cin=Cout0)
-        s2, Cout2 = self.accumulator1.logic_one_bit_accumulator(clk=clk, y=y2, Cin=Cout1)
-        s3, Cout3 = self.accumulator1.logic_one_bit_accumulator(clk=clk, y=y3, Cin=Cout2)
+        s2, Cout2 = self.accumulator2.logic_one_bit_accumulator(clk=clk, y=y2, Cin=Cout1)
+        s3, Cout3 = self.accumulator3.logic_one_bit_accumulator(clk=clk, y=y3, Cin=Cout2)
 
         return str(s0) + str(s1) + str(s2) + str(s3), Cout3
 
