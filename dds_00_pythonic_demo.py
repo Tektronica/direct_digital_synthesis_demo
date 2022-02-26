@@ -10,6 +10,12 @@ https://www.analog.com/media/en/technical-documentation/data-sheets/ad9833.pdf
 # All About Direct Digital Synthesis
 https://www.analog.com/en/analog-dialogue/articles/all-about-direct-digital-synthesis.html
 https://www.analog.com/media/en/analog-dialogue/volume-38/number-3/articles/all-about-direct-digital-synthesis.pdf
+
+An Accurate DDS Method Using Compound Frequency Tuning Word and Its FPGA Implementation
+https://www.google.com/url?sa=t&rct=j&q=&esrc=s&source=web&cd=&ved=2ahUKEwir5fzEqJz2AhUrGDQIHc7gAdcQFnoECAkQAQ&url=https%3A%2F%2Fwww.mdpi.com%2F2079-9292%2F7%2F11%2F330%2Fpdf-vor&usg=AOvVaw291okQKs9_yy0JqMenWPAb
+
+Calculating the DDS tuning word (floating point)
+https://jimhollister.wordpress.com/2015/09/07/calculating-the-dds-tuning-word/
 """
 
 
@@ -42,7 +48,7 @@ def start():
     rom_address = 0
     output = 0.0
 
-    NCO = NUMERICALLY_CONTROLLED_OSCILLATOR(N=N, fs=fosc)
+    NCO = NUMERICALLY_CONTROLLED_OSCILLATOR(N=N, fosc=fosc)
     NCO.set_output_frequency(fc)
 
     RO = ROLLOVER()  # initialize instance of Rollover class to synchronize sampling and clock frequencies
@@ -133,27 +139,24 @@ def low_pass(sig, fmax, fs):
 
     :return: filtered output
     """
-    order = 2  # filter order
+    order = 10  # filter order
 
     # cutoff should be below (not equal to) nyquist of the sampling frequency
     cutoff = fmax
 
     # since fs is specified, we do not normalize the cutoff to the nyquist (fc/fnyq
-    sos = signal.butter(N=10, Wn=cutoff, btype='lowpass', analog=False, output='sos', fs=fs)
+    sos = signal.butter(N=order, Wn=cutoff, btype='lowpass', analog=False, output='sos', fs=fs)
     filtered = signal.sosfilt(sos, sig)
 
     return filtered
 
 
 class NUMERICALLY_CONTROLLED_OSCILLATOR:
-    def __init__(self, N, fs):
-        self.fs = fs  # clock frequency
+    def __init__(self, N, fosc):
+        self.fosc = fosc  # clock frequency
         self.N = N  # bit depth of the accumulator
         self.phase_register = 0
-
-        # set amount the phase accumulator is incremented each clock cycle
-        self.M = 0
-        self.set_output_frequency(fc=1e6)
+        self.M = 1  # tuning bit the phase accumulator is incremented by on each clock cycle
 
     # CONVENIENCE FUNCTIONS ============================================================================================
     def get_tuning(self):
@@ -163,7 +166,7 @@ class NUMERICALLY_CONTROLLED_OSCILLATOR:
 
         :return: tuning frequency
         """
-        return (self.M * self.fs) / (2 ** self.N)
+        return (self.M * self.fosc) / (2 ** self.N)
 
     def get_frequency_resolution(self):
         """
@@ -173,16 +176,18 @@ class NUMERICALLY_CONTROLLED_OSCILLATOR:
 
         :return: frequency resolution
         """
-        return self.fs / (2 ** self.N)
+        return self.fosc / (2 ** self.N)
 
     # FREQUENCY TUNING WORD ============================================================================================
     def set_output_frequency(self, fc):
         """
         Calculates the tuning word, M for a given output frequency as a function of the sampling frequency
-        :param fc: output frequency
-        :param fs: sampling frequency
+        +   Since the accumulator bit width is fixed, the frequency tuning word cannot be decimal.
+        +   Output frequency cannot be arbitrary value.
+
+        param fc: output frequency
         """
-        new_M = (2 ** self.N) * (fc / self.fs)
+        new_M = int((2 ** self.N) * (fc / self.fosc))
         self.set_frequency_tuning_word(new_M)
 
     def set_frequency_tuning_word(self, new_M):
@@ -220,7 +225,7 @@ class NUMERICALLY_CONTROLLED_OSCILLATOR:
         M = self.get_frequency_tuning_word()  # M is retrieved from the delta phase register
         last_phase = self.get_phase_register()  # last phase retrieved from the phase accumulator register
 
-        # integrate the frequency tuning word (Phase is the integral of frequency)
+        # integrate the frequency tuning word (phase is the integral of frequency)
         ram_address = (last_phase + M) % (2**self.N)
         self.set_phase_register(ram_address)
 
