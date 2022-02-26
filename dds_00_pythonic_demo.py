@@ -221,13 +221,8 @@ class NUMERICALLY_CONTROLLED_OSCILLATOR:
         last_phase = self.get_phase_register()  # last phase retrieved from the phase accumulator register
 
         # integrate the frequency tuning word (Phase is the integral of frequency)
-        if last_phase < (2 ** self.N - M):
-            new_phase = (last_phase + M)
-            self.set_phase_register(new_phase)
-        else:
-            self.reset_phase_register()  # resets the value of the phase register
-
-        ram_address = np.mod(last_phase, 2 ** self.N)
+        ram_address = (last_phase + M) % (2**self.N)
+        self.set_phase_register(ram_address)
 
         return last_phase, ram_address
 
