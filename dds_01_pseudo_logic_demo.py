@@ -12,33 +12,6 @@ def run_demo():
     start()
 
 
-# def start():
-#     print('D Flip Flop test')
-#     dff = D_FLIP_FLOP()
-#     dff.logic_d_flip_flop(clk=0, d=1)
-#     print(2, 'rising edge ---->', dff.logic_d_flip_flop(clk=1, d=1), 'should change to 1')
-#     dff.logic_d_flip_flop(clk=0, d=0)
-#     print(4, 'rising edge ---->', dff.logic_d_flip_flop(clk=1, d=0), 'change to 0')
-#     dff.logic_d_flip_flop(clk=0, d=1)
-#     print(6, 'rising edge ---->', dff.logic_d_flip_flop(clk=1, d=1), 'change to 1')
-#
-#     print('\nfull adder test')
-#     print('0+0 with Cin=0 --> sum = 0, Cout = 0 | ', logic_full_adder(A=0, B=0, Cin=0))
-#     print('0+0 with Cin=1 --> sum = 1, Cout = 0 | ', logic_full_adder(A=0, B=0, Cin=1))
-#     print('0+1 with Cin=0 --> sum = 1, Cout = 0 | ', logic_full_adder(A=0, B=1, Cin=0))
-#     print('0+1 with Cin=1 --> sum = 0, Cout = 1 | ', logic_full_adder(A=0, B=1, Cin=1))
-#     print('1+0 with Cin=0 --> sum = 1, Cout = 0 | ', logic_full_adder(A=1, B=0, Cin=0))
-#     print('1+0 with Cin=1 --> sum = 0, Cout = 1 | ', logic_full_adder(A=1, B=0, Cin=1))
-#     print('1+1 with Cin=0 --> sum = 0, Cout = 1 | ', logic_full_adder(A=1, B=1, Cin=0))
-#     print('1+1 with Cin=1 --> sum = 1, Cout = 1 | ', logic_full_adder(A=1, B=1, Cin=1))
-#
-#     print('\nfour bit accumulator')
-#     FBA = FOUR_BIT_ACCUMULATOR()
-#     for i in range(1, 16):
-#         binary_sum = f'0b{i:04b}'[2:]
-#         print(f'--> [{i}] sum = {binary_sum} | actual:', FBA.four_bit_accumulator(clk=1, y='0001', Cin=0))
-#         FBA.four_bit_accumulator(clk=0, y='0000', Cin=0)
-
 def start():
     data = {
         "time": [], "phase": [], "output": [], "filtered": [],
