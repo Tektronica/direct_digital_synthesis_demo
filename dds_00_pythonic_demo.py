@@ -4,6 +4,10 @@ import spectrum_analyzer as sa
 from scipy import signal
 
 """
+DDS demo with 8-bit accumulator
+"""
+
+"""
 # AD9833 Theory of Operation (11,12)
 https://www.analog.com/media/en/technical-documentation/data-sheets/ad9833.pdf
 
@@ -224,7 +228,7 @@ class NUMERICALLY_CONTROLLED_OSCILLATOR:
         last_phase_address = self.get_phase_register()  # last phase retrieved from the phase accumulator register
 
         # integrate the frequency tuning word (phase is the integral of frequency)
-        next_address = (last_phase_address + M) % (2**self.N)
+        next_address = (last_phase_address + M) % (2 ** self.N)
         self.set_phase_register(next_address)
 
         return last_phase_address

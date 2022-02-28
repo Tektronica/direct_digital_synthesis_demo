@@ -3,39 +3,109 @@ import matplotlib.pyplot as plt
 import spectrum_analyzer as sa
 from scipy import signal
 
+"""
+DDS demo with 4-bit accumulator
+"""
+
 
 def run_demo():
     start()
 
 
+# def start():
+#     print('D Flip Flop test')
+#     dff = D_FLIP_FLOP()
+#     dff.logic_d_flip_flop(clk=0, d=1)
+#     print(2, 'rising edge ---->', dff.logic_d_flip_flop(clk=1, d=1), 'should change to 1')
+#     dff.logic_d_flip_flop(clk=0, d=0)
+#     print(4, 'rising edge ---->', dff.logic_d_flip_flop(clk=1, d=0), 'change to 0')
+#     dff.logic_d_flip_flop(clk=0, d=1)
+#     print(6, 'rising edge ---->', dff.logic_d_flip_flop(clk=1, d=1), 'change to 1')
+#
+#     print('\nfull adder test')
+#     print('0+0 with Cin=0 --> sum = 0, Cout = 0 | ', logic_full_adder(A=0, B=0, Cin=0))
+#     print('0+0 with Cin=1 --> sum = 1, Cout = 0 | ', logic_full_adder(A=0, B=0, Cin=1))
+#     print('0+1 with Cin=0 --> sum = 1, Cout = 0 | ', logic_full_adder(A=0, B=1, Cin=0))
+#     print('0+1 with Cin=1 --> sum = 0, Cout = 1 | ', logic_full_adder(A=0, B=1, Cin=1))
+#     print('1+0 with Cin=0 --> sum = 1, Cout = 0 | ', logic_full_adder(A=1, B=0, Cin=0))
+#     print('1+0 with Cin=1 --> sum = 0, Cout = 1 | ', logic_full_adder(A=1, B=0, Cin=1))
+#     print('1+1 with Cin=0 --> sum = 0, Cout = 1 | ', logic_full_adder(A=1, B=1, Cin=0))
+#     print('1+1 with Cin=1 --> sum = 1, Cout = 1 | ', logic_full_adder(A=1, B=1, Cin=1))
+#
+#     print('\nfour bit accumulator')
+#     FBA = FOUR_BIT_ACCUMULATOR()
+#     for i in range(1, 16):
+#         binary_sum = f'0b{i:04b}'[2:]
+#         print(f'--> [{i}] sum = {binary_sum} | actual:', FBA.four_bit_accumulator(clk=1, y='0001', Cin=0))
+#         FBA.four_bit_accumulator(clk=0, y='0000', Cin=0)
+
 def start():
-    log = {"time": [], "phase": [], "address": [], "output": []}
+    data = {
+        "time": [], "phase": [], "output": [], "filtered": [],
+        "xf": [], "yf": [], "xf_f": [], "yf_f": []
+    }
 
-    print('D Flip Flop test')
-    dff = D_FLIP_FLOP()
-    dff.logic_d_flip_flop(clk=0, d=1)
-    print(2, 'rising edge ---->', dff.logic_d_flip_flop(clk=1, d=1), 'should change to 1')
-    dff.logic_d_flip_flop(clk=0, d=0)
-    print(4, 'rising edge ---->', dff.logic_d_flip_flop(clk=1, d=0), 'change to 0')
-    dff.logic_d_flip_flop(clk=0, d=1)
-    print(6, 'rising edge ---->', dff.logic_d_flip_flop(clk=1, d=1), 'change to 1')
+    fs = 50e6  # sampling frequency of simulation
 
-    print('\nfull adder test')
-    print('0+0 with Cin=0 --> sum = 0, Cout = 0 | ', logic_full_adder(A=0, B=0, Cin=0))
-    print('0+0 with Cin=1 --> sum = 1, Cout = 0 | ', logic_full_adder(A=0, B=0, Cin=1))
-    print('0+1 with Cin=0 --> sum = 1, Cout = 0 | ', logic_full_adder(A=0, B=1, Cin=0))
-    print('0+1 with Cin=1 --> sum = 0, Cout = 1 | ', logic_full_adder(A=0, B=1, Cin=1))
-    print('1+0 with Cin=0 --> sum = 1, Cout = 0 | ', logic_full_adder(A=1, B=0, Cin=0))
-    print('1+0 with Cin=1 --> sum = 0, Cout = 1 | ', logic_full_adder(A=1, B=0, Cin=1))
-    print('1+1 with Cin=0 --> sum = 0, Cout = 1 | ', logic_full_adder(A=1, B=1, Cin=0))
-    print('1+1 with Cin=1 --> sum = 1, Cout = 1 | ', logic_full_adder(A=1, B=1, Cin=1))
+    fc = 1e6  # output frequency
+    fmax = 2e6  # maximum output frequency used for filter cutoff
 
-    print('\nfour bit accumulator')
-    FBA = FOUR_BIT_ACCUMULATOR()
-    for i in range(1, 16):
-        binary_sum = f'0b{i:04b}'[2:]
-        print(f'--> [{i}] sum = {binary_sum} | actual:', FBA.four_bit_accumulator(clk=1, y='0001', Cin=0))
-        FBA.four_bit_accumulator(clk=0, y='0000', Cin=0)
+    fosc = 16e6  # clock frequency of the DDS
+    N = 4  # N-bit phase accumulator
+    dac_bit_depth = 4  # N-bit DAC
+
+    # TIME STEP AND RUN TIME -------------------------------------------------------------------------------------------
+    time = 0.0  # ns
+    tf = 1e7  # ns
+    dt = (1 / fs) * 1e9  # time step in nanoseconds
+
+    # RUN SIMULATION ===================================================================================================
+    phase_address = 0
+    output = 0.0
+
+    NCO = NUMERICALLY_CONTROLLED_OSCILLATOR(N=N, fosc=fosc)
+    NCO.set_output_frequency(fc)
+
+    RO = ROLLOVER()  # initialize instance of Rollover class to synchronize sampling and clock frequencies
+
+    while time < tf:
+        if RO.check_rollover(time, ((1 / fosc) * 1e9)):
+            phase_address = NCO.phase_accumulator()  # returns the last stored phase address
+            dac_code = sin_ROM(phase_address, dac_bit_depth)  # returns the dac code from lookup table
+            output = dac(dac_code, dac_bit_depth)  # returns the dac output value
+
+        # log
+        data["time"].append(time)
+        data["phase"].append(phase_address)
+        data["output"].append(output)
+
+        # increment time
+        time += dt
+
+    # FILTER OUTPUT ----------------------------------------------------------------------------------------------------
+    # sampling frequency is twice the clock of the system to see the impact on the spectrum
+    data["filtered"] = low_pass(data["output"], fmax=fmax, fs=fs)
+
+    # ANALYZE SPECTRUM -------------------------------------------------------------------------------------------------
+    yt = data["output"]
+    yt_f = data["filtered"]
+
+    xf, yf, xf_real, yf_real, mlw = sa.windowed_fft(yt=yt, Fs=fs, N=len(yt), windfunc='blackman')
+    data["xf"] = xf_real / 1e6
+    data["yf"] = 20 * np.log10(np.abs(yf_real / max(abs(yf_real))))
+
+    xf_f, yf_f, xf_real_f, yf_real_f, mlw_f = sa.windowed_fft(yt=yt_f, Fs=fs, N=len(yt_f), windfunc='blackman')
+    data["xf_f"] = xf_real_f / 1e6
+    data["yf_f"] = 20 * np.log10(np.abs(yf_real_f / max(abs(yf_real_f))))  # TODO: normalize to the unfiltered output??
+
+    # COMPUTE LIMITS ---------------------------------------------------------------------------------------------------
+    xt_limits = (0, (4 / fc) * 1e9)
+
+    # set max to not exceed max bin
+    xf_limits = (min(xf_real) / 1e6, min(10 ** (np.ceil(np.log10(fc)) + 1), fs / 2 - fs / N) / 1e6)
+
+    # PLOT -------------------------------------------------------------------------------------------------------------
+    plot(data, xt_limits, xf_limits, M=NCO.get_frequency_tuning_word())
 
 
 class ROLLOVER:
@@ -228,10 +298,10 @@ class FOUR_BIT_ACCUMULATOR:
         self.accumulator3 = ONE_BIT_ACCUMULATOR(4)
 
     def four_bit_accumulator(self, clk=1, y='0000', Cin=0):
-        y3 = int(y[0])
+        y3 = int(y[0])  # LSB
         y2 = int(y[1])
         y1 = int(y[2])
-        y0 = int(y[3])
+        y0 = int(y[3])  # MSB
 
         # register of flip-flops
         s0, Cout0 = self.accumulator0.logic_one_bit_accumulator(clk=clk, y=y0, Cin=Cin)
