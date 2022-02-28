@@ -25,8 +25,8 @@ def run_demo():
 
 def start():
     data = {
-        "time": [], "phase": [], "address": [], "output": [],
-        "filtered": [], "xf": [], "yf": [], "xf_f": [], "yf_f": []
+        "time": [], "phase": [], "output": [], "filtered": [],
+        "xf": [], "yf": [], "xf_f": [], "yf_f": []
     }
 
     fs = 50e6  # sampling frequency of simulation
@@ -44,8 +44,7 @@ def start():
     dt = (1 / fs) * 1e9  # time step in nanoseconds
 
     # RUN SIMULATION ===================================================================================================
-    last_phase = 0
-    rom_address = 0
+    phase_address = 0
     output = 0.0
 
     NCO = NUMERICALLY_CONTROLLED_OSCILLATOR(N=N, fosc=fosc)
@@ -55,14 +54,13 @@ def start():
 
     while time < tf:
         if RO.check_rollover(time, ((1 / fosc) * 1e9)):
-            last_phase, rom_address = NCO.phase_accumulator()
-            dac_code = sin_ROM(rom_address, dac_bit_depth)
-            output = dac(dac_code, dac_bit_depth)
+            phase_address = NCO.phase_accumulator()  # returns the last stored phase address
+            dac_code = sin_ROM(phase_address, dac_bit_depth)  # returns the dac code from lookup table
+            output = dac(dac_code, dac_bit_depth)  # returns the dac output value
 
         # log
         data["time"].append(time)
-        data["phase"].append(last_phase)
-        data["address"].append(rom_address)
+        data["phase"].append(phase_address)
         data["output"].append(output)
 
         # increment time
@@ -223,20 +221,19 @@ class NUMERICALLY_CONTROLLED_OSCILLATOR:
         If each entry is stored with k-bit accuracy, then the lookup table size in memory is (k*2^N)/8e9 [Gigabytes]
         """
         M = self.get_frequency_tuning_word()  # M is retrieved from the delta phase register
-        last_phase = self.get_phase_register()  # last phase retrieved from the phase accumulator register
+        last_phase_address = self.get_phase_register()  # last phase retrieved from the phase accumulator register
 
         # integrate the frequency tuning word (phase is the integral of frequency)
-        ram_address = (last_phase + M) % (2**self.N)
-        self.set_phase_register(ram_address)
+        next_address = (last_phase_address + M) % (2**self.N)
+        self.set_phase_register(next_address)
 
-        return last_phase, ram_address
+        return last_phase_address
 
 
 def plot(data, xt_limits, xf_limits, M=0):
     # log
     time = data["time"]
     phase = data["phase"]
-    address = data["address"]
     output = data["output"]
     filtered = data["filtered"]
 
