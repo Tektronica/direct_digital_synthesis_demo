@@ -218,7 +218,7 @@ class D_FLIP_FLOP:
 
         self.clock_last_state = clock_state
 
-    def logic_d_flip_flop(self, clk=1, d=0):
+    def logic(self, clk=1, d=0):
         self.rising_edge_trigger(clk)
 
         if self.rising_edge:
@@ -251,13 +251,13 @@ def logic_full_adder(A, B, Cin):
 class ONE_BIT_ACCUMULATOR:
     def __init__(self, logic_id=0):
         self.logic_id = logic_id
-        self.dflipflop1 = D_FLIP_FLOP(1)
+        self.dflipflop = D_FLIP_FLOP(1)
         self.Q = 0
 
-    def logic_one_bit_accumulator(self, clk, y, Cin=0):
+    def logic(self, clk, y, Cin=0):
         # register of flip-flops
         s, Cout = logic_full_adder(A=y, B=self.Q, Cin=Cin)
-        self.Q, Qn = self.dflipflop1.logic_d_flip_flop(clk, s)
+        self.Q, Qn = self.dflipflop.logic(clk, s)
 
         return s, Cout
 
@@ -265,22 +265,22 @@ class ONE_BIT_ACCUMULATOR:
 class FOUR_BIT_ACCUMULATOR:
     def __init__(self, logic_id=0):
         self.logic_id = logic_id
-        self.accumulator0 = ONE_BIT_ACCUMULATOR(1)
-        self.accumulator1 = ONE_BIT_ACCUMULATOR(2)
-        self.accumulator2 = ONE_BIT_ACCUMULATOR(3)
-        self.accumulator3 = ONE_BIT_ACCUMULATOR(4)
+        self.one_bit_accumulator0 = ONE_BIT_ACCUMULATOR(0)
+        self.one_bit_accumulator1 = ONE_BIT_ACCUMULATOR(1)
+        self.one_bit_accumulator2 = ONE_BIT_ACCUMULATOR(2)
+        self.one_bit_accumulator3 = ONE_BIT_ACCUMULATOR(3)
 
-    def four_bit_accumulator(self, clk=1, y='0000', Cin=0):
+    def logic(self, clk=1, y='0000', Cin=0):
         y3 = int(y[0])  # LSB
         y2 = int(y[1])
         y1 = int(y[2])
         y0 = int(y[3])  # MSB
 
         # register of flip-flops
-        s0, Cout0 = self.accumulator0.logic_one_bit_accumulator(clk=clk, y=y0, Cin=Cin)
-        s1, Cout1 = self.accumulator1.logic_one_bit_accumulator(clk=clk, y=y1, Cin=Cout0)
-        s2, Cout2 = self.accumulator2.logic_one_bit_accumulator(clk=clk, y=y2, Cin=Cout1)
-        s3, Cout3 = self.accumulator3.logic_one_bit_accumulator(clk=clk, y=y3, Cin=Cout2)
+        s0, Cout0 = self.one_bit_accumulator0.logic(clk=clk, y=y0, Cin=Cin)
+        s1, Cout1 = self.one_bit_accumulator1.logic(clk=clk, y=y1, Cin=Cout0)
+        s2, Cout2 = self.one_bit_accumulator2.logic(clk=clk, y=y2, Cin=Cout1)
+        s3, Cout3 = self.one_bit_accumulator3.logic(clk=clk, y=y3, Cin=Cout2)
 
         return str(s3) + str(s2) + str(s1) + str(s0), Cout3
 
@@ -291,7 +291,7 @@ class NUMERICALLY_CONTROLLED_OSCILLATOR:
         self.N = N  # bit depth of the accumulator
         self.phase_register = 0
         self.M = 1  # tuning bit the phase accumulator is incremented by on each clock cycle
-        self.FBA = FOUR_BIT_ACCUMULATOR()
+        self.four_bit_accumulator = FOUR_BIT_ACCUMULATOR()
 
     # CONVENIENCE FUNCTIONS ============================================================================================
     def get_tuning(self):
@@ -361,8 +361,8 @@ class NUMERICALLY_CONTROLLED_OSCILLATOR:
         last_phase_address = self.get_phase_register()  # last phase retrieved from the phase accumulator register
 
         # integrate the frequency tuning word (phase is the integral of frequency)
-        next_address, carry = self.FBA.four_bit_accumulator(clk=1, y=M, Cin=0)  # "tick"
-        self.FBA.four_bit_accumulator(clk=0, y='0000', Cin=0)  # "tock"
+        next_address, carry = self.four_bit_accumulator.logic(clk=1, y=M, Cin=0)  # "tick"
+        self.four_bit_accumulator.logic(clk=0, y='0000', Cin=0)  # "tock"
         self.set_phase_register(int(next_address, 2))
 
         return last_phase_address
